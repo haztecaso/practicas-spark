@@ -44,7 +44,12 @@ def triciclos(etiquetas):
     return etiquetas\
             .groupByKey()\
             .filter(lambda x: 'existe' in x[1] and len(x[1]) > 1)\
-            .flatMap(lambda x: map(lambda y: (y[1], x[0][0], x[0][1]),filter(lambda z: not z == 'existe', x[1])))
+            .flatMap(
+                lambda x: map(
+                    lambda y: (y[1], x[0][0], x[0][1]),
+                    filter(lambda y: not y == 'existe', x[1])
+                    )
+                )
 
 
 def process_data(data):
@@ -52,12 +57,14 @@ def process_data(data):
     etiquetas = adj.flatMap(etiquetar)
     return triciclos(etiquetas)
 
+
 def ejercicio_2(sc, rdds):
     for rdd in rdds:
         rdd.cache()
     data = sc.union(rdds)
     for ciclo in process_data(data).collect():
         print(ciclo)
+
 
 def ejercicio_3(sc, rdds, files):
     i = 0
@@ -69,7 +76,6 @@ def ejercicio_3(sc, rdds, files):
 
 
 def main(sc, modo, files):
-    rdds = [sc.textFile(f) for f in files]
     if int(modo) == 2:
         ejercicio_2(sc, rdds)
     elif int(modo) == 3:
@@ -77,8 +83,15 @@ def main(sc, modo, files):
 
 
 if __name__ == '__main__':
-    from sys import argv
-    if len(argv)>1:
-        with SparkContext() as sc:
-            sc.setLogLevel("ERROR")
-            main(sc, 3, argv[1:])
+    import argparse
+    parser = argparse.ArgumentParser(description="Calcular los 3-ciclos de un grafo")
+    parser.add_argument("ficheros", help="Archivos .txt con listas de aristas", nargs = '+')
+    parser.add_argument("--indep", help="Calcular los 3-ciclos de cada fichero de forma independiente", action='store_true' )
+    args = parser.parse_args()
+    with SparkContext() as sc:
+        sc.setLogLevel("ERROR")
+        rdds = [sc.textFile(f) for f in args.ficheros]
+        if args.indep:
+            ejercicio_3(sc, rdds, args.ficheros)
+        else:
+            ejercicio_2(sc, rdds)
