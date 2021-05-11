@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pyspark import SparkContext
+from operator import itemgetter
 
 def get_edges(line):
     edge = line.strip().split(',')
@@ -17,48 +18,49 @@ def get_edges(line):
         pass #n1 == n2
 
 
-def get_rdd_distict_edges(rdd):
+def get_distict_edges(rdd):
     return rdd\
         .map(get_edges)\
         .filter(lambda x: x is not None)\
         .distinct()
 
 
-def adjacents(rdd):
-    nodes = get_rdd_distict_edges(rdd).sortBy(lambda tupla: tupla[1])
-    adj = nodes.groupByKey().sortByKey()
-    return adj
+def get_node_adjs(rdd):
+    return get_distict_edges(rdd)\
+                .sortBy(itemgetter(1))\
+                .groupByKey()\
+                .sortByKey()
 
 
-def etiquetar(tupla): # Función interativa, no perezosa
-    nodo = tupla[0]
-    adyacentes = list(tupla[1])
-    result = [((nodo, x), 'existe') for x in adyacentes]
-    for i in range(len(adyacentes)):
-        for j in range(i, len(adyacentes)):
-            result.append(((adyacentes[i], adyacentes[j]), ('pending', nodo)))
+def tag(node_adjs): # Función interativa, no perezosa
+    node = node_adjs[0]
+    adjs = list(node_adjs[1])
+    result = [((node, x), 'exists') for x in adjs]
+    for i in range(len(adjs)):
+        for j in range(i, len(adjs)):
+            result.append(((adjs[i], adjs[j]), ('pending', node)))
     return result
 
 
-def triciclos(etiquetas):
+def tricycles(tags):
     return etiquetas\
             .groupByKey()\
-            .filter(lambda x: 'existe' in x[1] and len(x[1]) > 1)\
+            .filter(lambda x: len(x[1]) > 1 and 'exists' in x[1])\
             .flatMap(
-                lambda x: map(
-                    lambda y: (y[1], x[0][0], x[0][1]),
-                    filter(lambda y: not y == 'existe', x[1])
+                lambda line: map(
+                    lambda x: (x[1], line[0][0], line[0][1]),
+                    filter(lambda x: not x == 'exists', line[1])
                     )
                 )
 
 
 def process_data(data):
-    adj = adjacents(data)
+    node_adjs = get_node_adjs(data)
     etiquetas = adj.flatMap(etiquetar)
-    return triciclos(etiquetas)
+    return tricycles(etiquetas)
 
 
-def ejercicio_2(sc, rdds):
+def mixed(sc, rdds):
     for rdd in rdds:
         rdd.cache()
     data = sc.union(rdds)
@@ -66,13 +68,11 @@ def ejercicio_2(sc, rdds):
         print(ciclo)
 
 
-def ejercicio_3(sc, rdds, files):
-    i = 0
-    for rdd in rdds:
+def independent(sc, rdds, files):
+    for i in range(len(rdds)):
         print(f"file: {files[i]}")
-        for e in process_data(rdd).collect():
+        for e in process_data(rdds[i]).collect():
             print(e)
-        i += 1
 
 
 if __name__ == '__main__':
@@ -85,6 +85,6 @@ if __name__ == '__main__':
         sc.setLogLevel("ERROR")
         rdds = [sc.textFile(f) for f in args.ficheros]
         if args.indep:
-            ejercicio_3(sc, rdds, args.ficheros)
+            independent(sc, rdds, args.ficheros)
         else:
-            ejercicio_2(sc, rdds)
+            mixed(sc, rdds)
