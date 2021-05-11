@@ -75,13 +75,6 @@ def ejercicio_3(sc, rdds, files):
         i += 1
 
 
-def main(sc, modo, files):
-    if int(modo) == 2:
-        ejercicio_2(sc, rdds)
-    elif int(modo) == 3:
-        ejercicio_3(sc, rdds, files)
-
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Calcular los 3-ciclos de un grafo")
