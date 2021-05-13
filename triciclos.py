@@ -27,7 +27,6 @@ def get_distict_edges(rdd):
 
 def get_node_adjs(rdd):
     return get_distict_edges(rdd)\
-                .sortBy(itemgetter(1))\
                 .groupByKey()\
                 .sortByKey()
 
@@ -35,6 +34,7 @@ def get_node_adjs(rdd):
 def tag(node_adjs): # Función interativa, no perezosa
     node = node_adjs[0]
     adjs = list(node_adjs[1])
+    adjs.sort()
     result = [((node, x), 'exists') for x in adjs]
     for i in range(len(adjs)):
         for j in range(i, len(adjs)):
