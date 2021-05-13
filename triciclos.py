@@ -43,7 +43,7 @@ def tag(node_adjs): # Función interativa, no perezosa
 
 
 def tricycles(tags):
-    return etiquetas\
+    return tags\
             .groupByKey()\
             .filter(lambda x: len(x[1]) > 1 and 'exists' in x[1])\
             .flatMap(
@@ -56,8 +56,8 @@ def tricycles(tags):
 
 def process_data(data):
     node_adjs = get_node_adjs(data)
-    etiquetas = adj.flatMap(etiquetar)
-    return tricycles(etiquetas)
+    tags = node_adjs.flatMap(tag)
+    return tricycles(tags)
 
 
 def mixed(sc, rdds):
