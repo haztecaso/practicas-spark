@@ -28,7 +28,6 @@ def get_distict_edges(rdd):
 def get_node_adjs(rdd):
     return get_distict_edges(rdd)\
                 .groupByKey()\
-                .sortByKey()
 
 
 def tag(node_adjs): # Función interativa, no perezosa
