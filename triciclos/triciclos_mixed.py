@@ -25,12 +25,11 @@ def get_distict_edges(rdd):
         .distinct()
 
 
-def get_node_adjs(rdd):
-    return get_distict_edges(rdd)\
-                .groupByKey()\
+def get_node_adjs(edges):
+    return edges.groupByKey()
 
 
-def tag(node_adjs): # Función interativa, no perezosa
+def tag(node_adjs): # Función iterativa, no perezosa
     node = node_adjs[0]
     adjs = list(node_adjs[1])
     adjs.sort()
@@ -54,7 +53,8 @@ def tricycles(tags):
 
 
 def process_data(data):
-    node_adjs = get_node_adjs(data)
+    edges = get_distict_edges(data)
+    node_adjs = get_node_adjs(edges)
     tags = node_adjs.flatMap(tag)
     return tricycles(tags)
 
@@ -67,23 +67,12 @@ def mixed(sc, rdds):
         print(ciclo)
 
 
-def independent(sc, rdds, files):
-    for i in range(len(rdds)):
-        print(f"file: {files[i]}")
-        for e in process_data(rdds[i]).collect():
-            print(e)
-
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Calcular los 3-ciclos de un grafo")
     parser.add_argument("ficheros", help="Archivos .txt con listas de aristas", nargs = '+')
-    parser.add_argument("--indep", help="Calcular los 3-ciclos de cada fichero de forma independiente", action='store_true' )
     args = parser.parse_args()
     with SparkContext() as sc:
         sc.setLogLevel("ERROR")
         rdds = [sc.textFile(f) for f in args.ficheros]
-        if args.indep:
-            independent(sc, rdds, args.ficheros)
-        else:
-            mixed(sc, rdds)
+        mixed(sc, rdds)
