@@ -76,26 +76,14 @@ def process_data(data):
     edges = get_distict_edges(data).cache()
     node_adjs = get_node_adjs(edges).cache()
     tags = node_adjs.flatMap(tag).cache()
-    tricycles_ = tricycles(tags)
-    return (edges, node_adjs, tags, tricycles_)
+    return tricycles(tags)
 
 
 def independent(sc, rdds, files):
     assert len(rdds) == len(files)
     tagged_rdds = [rdd.map(lambda x: (x,graph)).cache() for rdd, graph in zip(rdds, files)]
     data = sc.union(tagged_rdds)
-    edges, node_adjs, tags, tricycles = process_data(data)
-    # print("EDGES:")
-    # for edge in edges.collect():
-    #     print(edge)
-    # print("NODE_ADJS:")
-    # for node_adjs in node_adjs.collect():
-    #     print(node_adjs[0], list(node_adjs[1]))
-    # print("TAGS:")
-    # for tag in tags.collect():
-    #     print(tag[0], tag[1])
-    # print("TRICYLES:")
-    for tricycle in tricycles.collect():
+    for tricycle in process_data(data).collect():
         print(tricycle[0], tricycle[1])
 
 
