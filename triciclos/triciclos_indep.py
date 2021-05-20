@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pyspark import SparkContext
+from operator import itemgetter
 
 def get_edges(line):
     edge = line.strip().split(',')
@@ -17,13 +18,10 @@ def get_edges(line):
         pass #n1 == n2
 
 
-tupleMorph = lambda tup, x : (tup[0], (tup[1], x))
-
-
 def get_distict_edges(rdd):
     return rdd\
-        .map(lambda x: tupleMorph(get_edges(x[0]),x[1]))\
-        .filter(lambda x: x[1] is not None)\
+        .map(get_edges)\
+        .filter(lambda x: x is not None)\
         .distinct()
 
 
@@ -35,54 +33,37 @@ def tag(node_adjs): # Función iterativa, no perezosa
     node = node_adjs[0]
     adjs = list(node_adjs[1])
     adjs.sort()
-    result = [((node, x), (graph, 'exists')) for (x, graph) in adjs]
+    result = [((node, x), 'exists') for x in adjs]
     for i in range(len(adjs)):
         for j in range(i, len(adjs)):
-            if adjs[j][1] == adjs[i][1] and not adjs[i][0] == adjs[j][0]: #Los nodos aparecen en el mismo grafo
-                result.append(((adjs[i][0], adjs[j][0]), (adjs[i][1], ('pending', node))))
+            result.append(((adjs[i], adjs[j]), ('pending', node)))
     return result
-
-
-def findExists(tag_list):
-    for tag in tag_list:
-        if tag[1] == 'exists':
-            return True
-    return False
-
-def list2dict(lista):
-    result = {}
-    for key, value in lista:
-        if key not in result:
-            result[key] = [value]
-        else:
-            result[key].append(value)
-    return result
-
-def construct_tricycles(line):
-    edge, tags = line
-    return (edge, list2dict(tags))
 
 
 def tricycles(tags):
     return tags\
             .groupByKey()\
-            .filter(lambda x: len(x[1]) > 1 and findExists(x[1]))\
-            .map(construct_tricycles)
+            .filter(lambda x: len(x[1]) > 1 and 'exists' in x[1])\
+            .flatMap(
+                lambda line: map(
+                    lambda x: (x[1], line[0][0], line[0][1]),
+                    filter(lambda x: not x == 'exists', line[1])
+                    )
+                )
 
 
 def process_data(data):
-    edges = get_distict_edges(data).cache()
-    node_adjs = get_node_adjs(edges).cache()
-    tags = node_adjs.flatMap(tag).cache()
+    edges = get_distict_edges(data)
+    node_adjs = get_node_adjs(edges)
+    tags = node_adjs.flatMap(tag)
     return tricycles(tags)
 
 
-def independent(sc, rdds, files):
-    assert len(rdds) == len(files)
-    tagged_rdds = [rdd.map(lambda x: (x,graph)).cache() for rdd, graph in zip(rdds, files)]
-    data = sc.union(tagged_rdds)
-    for tricycle in process_data(data).collect():
-        print(tricycle[0], tricycle[1])
+def independent(rdds, files):
+    for i in range(len(rdds)):
+        print(f"file: {files[i]}")
+        for e in process_data(rdds[i]).collect():
+            print(e)
 
 
 if __name__ == '__main__':
@@ -93,4 +74,4 @@ if __name__ == '__main__':
     with SparkContext() as sc:
         sc.setLogLevel("ERROR")
         rdds = [sc.textFile(f) for f in args.ficheros]
-        independent(sc, rdds, args.ficheros)
+        independent(rdds, args.ficheros)
