@@ -1,0 +1,162 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    total={170mm,257mm},
+    left=20mm,
+    top=30mm,
+    bottom = 20mm
+}
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
+\usepackage[T1]{fontenc}
+\usepackage{imakeidx}
+\makeindex[columns=1, title=Alphabetical Index, intoc]
+\usepackage[hidelinks]{hyperref}
+\usepackage{float} %para colocar las cosas
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts} 
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[nameinlink,spanish]{cleveref}
+\usepackage{enumitem}
+
+\usepackage{listings}
+\lstset{inputpath=./Tron/}
+\usepackage{xcolor}
+\usepackage[labelformat=empty, labelfont={bf,it}, textfont=bf]{caption}%ponga solo el nombre en los codigos
+
+\renewcommand{\contentsname}{Índice}
+\renewcommand{\listfigurename}{Lista de figuras}
+\renewcommand{\figurename}{}%este cambia el nombre de la figura
+
+\newtheorem*{resoución}{Resolución}
+\newtheorem*{remark}{Nota}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+%\fancyhf{}
+\rhead{Cano, González, Lattes, Lobato}
+\cfoot{\thepage}
+
+\newcommand{\subsubsubsection}[1]{\paragraph{#1}\mbox{}\\}
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{4}
+
+\setlength\parindent{0pt}
+
+\usepackage{titlesec, blindtext, color}
+\definecolor{gray75}{gray}{0.75}
+\newcommand{\hsp}{\hspace{20pt}}
+
+% This is the default font in Spyder
+\newcommand*{\pyfontfamily}{\fontfamily{DejaVuSansMono-TLF}\selectfont}
+
+% These are close to the default font colors in Spyder
+\usepackage{color}
+\definecolor{pycommentcol}{rgb}{0.3,0.3,0.3}     % gray
+\definecolor{pystatecol}{rgb}{0,0,0.7}           % blue
+\definecolor{pystringcol}{rgb}{0,0.6,0}          % green
+\definecolor{pyinbuiltscol}{rgb}{0.55,0.15,0.55} % plum
+\definecolor{pyspecialcol}{rgb}{0.8,0.45,0.12}   % orange
+\definecolor{mygray}{gray}{0.3}
+% Python style for highlighting
+% for help with listings
+% see docs http://texdoc.net/texmf-dist/doc/latex/listings/listings.pdf
+\usepackage{listings}
+\newcommand\pythonstyle{\lstset{
+        language=Python,
+        literate=%esto es para que acepte acentos
+        {á}{{\'a}}1
+        {í}{{\'i}}1
+        {é}{{\'e}}1
+        {ý}{{\'y}}1
+        {ú}{{\'u}}1
+        {ó}{{\'o}}1
+        {ě}{{\v{e}}}1
+        {š}{{\v{s}}}1
+        {č}{{\v{c}}}1
+        {ř}{{\v{r}}}1
+        {ž}{{\v{z}}}1
+        {ď}{{\v{d}}}1
+        {ť}{{\v{t}}}1
+        {ñ}{{\~n}}1
+        {ň}{{\v{n}}}1                
+        {ů}{{\r{u}}}1
+        {Á}{{\'A}}1
+        {Í}{{\'I}}1
+        {É}{{\'E}}1
+        {Ý}{{\'Y}}1
+        {Ú}{{\'U}}1
+        {Ó}{{\'O}}1
+        {Ě}{{\v{E}}}1
+        {Š}{{\v{S}}}1
+        {Č}{{\v{C}}}1
+        {Ř}{{\v{R}}}1
+        {Ž}{{\v{Z}}}1
+        {Ď}{{\v{D}}}1
+        {Ť}{{\v{T}}}1
+        {Ň}{{\v{N}}}1                
+        {Ů}{{\r{U}}}1,
+        basicstyle=\pyfontfamily\scriptsize,
+        commentstyle=\color{pycommentcol}\itshape,
+        emph={self,cls,@classmethod,@property}, % Custom highlighting
+        emphstyle=\color{pyspecialcol}\itshape, % Custom highlighting style
+        morestring=[b]{"""},
+        stringstyle=\color{pystringcol},
+        keywordstyle=\color{pystatecol},        % statements
+        % remove any inbuilt functions from keywords
+        deletekeywords={print},
+        % Switch to predefined class that contain many, but not all,
+        % inbuilt functions and classes
+        classoffset=1,
+        % add any inbuilts, not statements
+        morekeywords={print,None,TypeError},
+        keywordstyle=\color{pyinbuiltscol},
+        frame=leftline,
+        numberstyle=\sffamily\tiny\color{mygray},
+        stepnumber=1,
+        numbers=left,
+        numbersep=10pt,                      
+        showstringspaces=false            
+}}
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+    \pythonstyle
+    \scriptsize
+    \lstset{#1}
+}
+{}
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstset{basicstyle= \normalsize}\lstinline!#1!}}
+
+% Python output style for highlighting
+\newcommand\pythonoutstyle{\lstset{
+        basicstyle=\pyfontfamily,                     
+        showstringspaces=false            
+}}
+% Python output environment
+\lstnewenvironment{pythonout}[1][]
+{
+    \pythonoutstyle
+    \scriptsize
+    \lstset{#1}
+}
+{}
+% Python output for inline
+\newcommand\pythonoutinline[1]{{\pythonoutstyle\lstinline!#1!}}
+
+\newcommand{\pyinput}[1]{\pythonstyle\lstinputlisting{#1}}
+
+\author{Cano Jon, González Jorge, Lattes Adrián, Lobato Pablo}
+\title{Entrega de programación distribuida}
+\date{21/05/2021}
+
+
+\begin{document}
+	contenidos...
+\end{document}
