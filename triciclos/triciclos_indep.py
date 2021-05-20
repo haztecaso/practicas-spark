@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 from pyspark import SparkContext
-from operator import itemgetter
-
 
 def get_edges(line):
     edge = line.strip().split(',')
