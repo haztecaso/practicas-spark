@@ -162,4 +162,49 @@
 	
 	\lstlistoflistings
 	\newpage
+	
+	\section{Grafo multifichero:}
+		\pythonstyle
+		
+		\lstset{inputpath=./triciclos/}
+		
+		En este ejercicio analizamos un grafo formado por multiples archivos y devolvemos todos sus triciclos. \\
+		\subsection{Unión de rdds:}
+		Primero unimos los rdd:
+		
+		\lstinputlisting[
+		linerange = {62-64},
+		firstnumber = 43,
+		caption = {[Grafo multifichero: mixed]unión de rdd}
+		]{triciclos_indep.py}
+		
+		\subsection{Triciclos}
+		Dado el rdd con los nodos y sus listas de adyacencia considerando solo nodos posteriores definimos la función tag que genera la lista de 'exist' y 'pending' para un nodo:
+		
+		\lstinputlisting[
+		linerange = {32-40},
+		firstnumber = 32,
+		caption = {[Grafo multifichero: tag]tag}
+		]{triciclos_indep.py}
+		
+		Generamos las listas de adyacencia y generamos los triciclos:
+		
+		\lstinputlisting[
+		linerange = {43-52},
+		firstnumber = 43,
+		caption = {[Grafo multifichero: tricycles]tricycles}
+		]{triciclos_indep.py}
+		
+		\lstinputlisting[
+		linerange = {55-59},
+		firstnumber = 55,
+		caption = {[Grafo multifichero: process data]process data}
+		]{triciclos_indep.py}
+		
+		\section{Multiples grafos:}
+		
+		
+		
+		
+		
 \end{document}
