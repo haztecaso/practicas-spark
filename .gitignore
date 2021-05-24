@@ -1,7 +1,6 @@
 datos
+*.ipynb
 
 Entrega*
-
 !Entrega.tex
-
 !Entrega.pdf
