@@ -2,6 +2,7 @@
 let
   nixPackages = with pkgs.python38Packages; [
     pyspark
+    pylint
   ];
 in
 pkgs.stdenv.mkDerivation {
