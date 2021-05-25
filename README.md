@@ -23,4 +23,5 @@ Prácticas de programación paralela en Apache Spark
 
 #### Otros
 
+- Artículo guapo: https://jakevdp.github.io/blog/2015/07/23/learning-seattles-work-habits-from-bicycle-counts/
 - https://rinzewind.org/blog-en/2015/learning-seattles-work-habits-from-bicycle-counts-with-r.html
