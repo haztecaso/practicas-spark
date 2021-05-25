@@ -1,106 +1,60 @@
 #!/usr/bin/env python3
-import pickle
-import re
-import subprocess
-from datetime import datetime
-from operator import itemgetter
+from bicimad import DataLoader
+from pyspark.sql.functions import col, udf, dayofweek, hour
+from pyspark.sql import Row
+from pyspark.ml.feature import VectorAssembler, PCA, StandardScaler
+from pyspark.sql.types import FloatType, ArrayType
+import numpy as np
 
-from pyspark.sql import DataFrame, SparkSession
-
-LS_REGEX = re.compile(r'^([-|r|w]+)\s+\d+\s+[^\d]*(\d+)[^/]+(/.+)$', re.MULTILINE)
-LS_FILEINFO = re.compile(r'^[^\d]+(\d+)_(\w*)\.json$')
-DATE_FORMAT = '%Y%m'
-
-is_iterable = lambda obj: hasattr(obj, '__iter__')
-
-
-class DataLoader():
-    def __init__(self, **kwargs):
-        self.dir = kwargs.get('dir','/public_data/bicimad')
-        self.cache = kwargs.get('cache_file', 'cache_files.data')
-        self.appName = kwargs.get('appName', 'bicimad')
-        if 'spark' in kwargs:
-            self.spark = kwargs['spark']
-        else:
-            self.spark = None
-        self.files = []
-        self._load_cache()
-        if len(self.files) == 0:
-            self._load_hdfs()
-            self._write_cache()
-
-    def get(self, **kwargs):
-        date_from = kwargs.get('start', self.files[0]['date'])
-        if type(date_from) == str:
-            date_from = datetime.strptime(date_from, DATE_FORMAT)
-        date_to = kwargs.get('end', self.files[-1]['date'])
-        if type(date_to) == str:
-            date_to = datetime.strptime(date_to, DATE_FORMAT)
-        files = filter(lambda f: f['date'] >= date_from and f['date'] <= date_to, self.files)
-        if 'type' in kwargs:
-            assert kwargs['type'] in ['movements', 'stations'], 'Invalid type'
-            files = filter(lambda f: f['type'] == kwargs['type'], files)
-        if kwargs.get('path', False):
-            files = map(itemgetter('path'), files)
-        return files
-
-    def get_df(self, **kwargs):
-        files = list(self.get(**kwargs, path=True))
-        print(f'Reading {len(files)} json files into DataFrame')
-        self._init_spark()
-        df = self.spark.read.json(files)
-        return df
-
-    def _init_spark(self):
-        if not self.spark:
-            self.spark = SparkSession.builder\
-                    .appName(self.appName)\
-                    .getOrCreate()
-
-    def _load_hdfs(self):
-        print(f'Getting list of json files in hdfs folder {self.dir}')
-        cmd = f'/opt/hadoop/current/bin/hdfs dfs -ls {self.dir}'.split(' ')
-        cmd_out = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode()
-        self.files = []
-        for match in re.finditer(LS_REGEX, cmd_out):
-            path = match.group(3)
-            file_info = re.match(LS_FILEINFO, path).groups()
-            date = datetime.strptime(file_info[0], DATE_FORMAT)
-            self.files.append({
-                'path': path,
-                'size': match.group(2),
-                'permissions': match.group(1),
-                'date': date,
-                'year': date.year,
-                'month': date.month,
-                'type': file_info[1],
-                })
-        self.files.sort(key=itemgetter('date'))
-
-    def _write_cache(self):
-        assert len(self.files) > 0, 'Cannot cache empty list of files' 
-        with open(self.cache, 'wb') as cache:
-            pickle.dump(self.files, cache)
-
-    def _load_cache(self):
-        try:
-            with open(self.cache, 'rb') as cache:
-                print(f"'Loading cache file '{self.cache}'")
-                self.files = pickle.load(cache)
-        except FileNotFoundError:
-            print("Cache file '{self.cache}' not found")
+def prepare(df):
+    return df\
+          .filter(df['user_type'] != 3)\
+          .drop('track', '_id')\
+          .withColumn('day_of_week', dayofweek('unplug_hourTime'))\
+          .withColumn('hour', hour('unplug_hourTime'))
 
 
-def main():
-    data = DataLoader()
-    files = data.get(type="movements", path=False)
-    days = 0
-    from calendar import monthrange
-    for f in files:
-        year, month = f['date'].year, f['date'].month
-        days += monthrange(year, month)[1]
-    print(days, days*24)
+def assemble_and_center(df):
+    vecAssembler = VectorAssembler(outputCol="features", handleInvalid='skip')
+    vecAssembler.setInputCols(['ageRange', 'idunplug_station', 'idplug_station', 'travel_time', 'hour', 'day_of_week'])
+    assembled = vecAssembler.transform(df)
+    centerer = StandardScaler(inputCol="features", outputCol="scaled_features", withStd=False, withMean=True)
+    return centerer.fit(assembled).transform(assembled)
 
+
+def make_pca_model(df, k):
+    pca = PCA(k=k, inputCol="scaled_features", outputCol="pca_features")
+    model = pca.fit(df)
+    return model
+
+
+def extract_components(k):
+    def inner(row):
+        values = row['pca_features'].toArray()
+        cols = {}
+        for i in range(k):
+            cols[f'PCA{i+1}'] = values[i].item()
+        return Row(**cols)
+    return inner
+
+
+def make_pca_df(df, model, k):
+    return model.transform(df).select('pca_features')\
+            .rdd.map(extract_components(k)).toDF()
+
+
+def test():
+    sample = './samples/202103_movements_random_sample_1000.json'
+    data = DataLoader(appName = 'bicimad-test', test_file=sample)
+    df = data.get_df()
+    df = prepare(df)
+    df.printSchema()
+    df = assemble_and_center(df)
+    pca_model = make_pca_model(df, 2)
+    pca_df = make_pca_df(df, pca_model, 2)
+    pca_df.printSchema()
+    fig = pca_df.toPandas().plot.scatter(x='PCA1', y='PCA2').get_figure()
+    fig.savefig("pca_plot.pdf")
 
 if __name__ == '__main__':
-    main()
+    test()
