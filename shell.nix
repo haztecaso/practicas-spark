@@ -2,7 +2,10 @@
 let
   nixPackages = with pkgs.python38Packages; [
     pyspark
+    numpy
     pylint
+    pandas
+    matplotlib
   ];
 in
 pkgs.stdenv.mkDerivation {
