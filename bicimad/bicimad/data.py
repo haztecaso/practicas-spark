@@ -155,7 +155,5 @@ class Stations(Data):
 
     def load_df(self):
         super().load_df()
-        # self.df = self.df\
-        #         .select('_id', explode('stations'))
 
 __all__ = ['DataLoader', 'Movements', 'Stations']
