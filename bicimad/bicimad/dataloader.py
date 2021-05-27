@@ -5,26 +5,47 @@ from datetime import datetime
 from operator import itemgetter
 
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StringType, IntegerType, TimestampType
+from pyspark.sql.types import StructType, ArrayType, IntegerType, FloatType,\
+    StringType, TimestampType, ArrayType, BooleanType
 
 LS_REGEX = re.compile(r'^([-|r|w]+)\s+\d+\s+[^\d]*(\d+)[^/]+(/.+)$', re.MULTILINE)
 LS_FILEINFO = re.compile(r'^[^\d]+(\d+)_(\w*)\.json$')
 DATE_FORMAT = '%Y%m'
+TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 
 is_iterable = lambda obj: hasattr(obj, '__iter__')
 
-schema = StructType()\
-    .add('_id', StructType().add('$oid', StringType(), False), False)\
-    .add("user_day_code", StringType(), False)\
-    .add("idplug_base", IntegerType(), False)\
-    .add("idunplug_base", IntegerType(), False)\
-    .add("travel_time", IntegerType(), False)\
-    .add("idunplug_station", IntegerType(), False)\
-    .add("idplug_station", IntegerType(), False)\
-    .add("ageRange", IntegerType(), False)\
-    .add("user_type", IntegerType(), False)\
-    .add("unplug_hourTime", TimestampType(), False)\
-    .add("zip_code", StringType(), True)
+schemas = {
+        'movements': StructType()\
+                .add('_id', StructType().add('$oid', StringType(), False), False)\
+                .add("user_day_code", StringType(), False)\
+                .add("idplug_base", IntegerType(), False)\
+                .add("idunplug_base", IntegerType(), False)\
+                .add("travel_time", IntegerType(), False)\
+                .add("idunplug_station", IntegerType(), False)\
+                .add("idplug_station", IntegerType(), False)\
+                .add("ageRange", IntegerType(), False)\
+                .add("user_type", IntegerType(), False)\
+                .add("unplug_hourTime", TimestampType(), False)\
+                .add("zip_code", StringType(), True),
+        'stations':  StructType()\
+                .add('_id', TimestampType() ,False)\
+                .add("stations", ArrayType(\
+                        StructType()\
+                            .add("activate",BooleanType(), False)\
+                            .add("address",StringType(), False)\
+                            .add("dock_bikes",IntegerType(), False)\
+                            .add("free_bases",IntegerType(), False)\
+                            .add("id",IntegerType(), False)\
+                            .add("latitude",FloatType(), False)\
+                            .add("light",IntegerType(), False)\
+                            .add("longitude",FloatType(), False)\
+                            .add("no_available",IntegerType(), False)\
+                            .add("number",StringType(), False)\
+                            .add("reservations_count",IntegerType(), False)\
+                            .add("total_bases",IntegerType(), False)\
+                        ), False)\
+        }
 
 
 class DataLoader():
@@ -62,10 +83,12 @@ class DataLoader():
         return files
 
     def get_df(self, **kwargs):
+        assert 'type' in kwargs, 'You must specify a type to create a DF!'
         files = list(self.get(**kwargs, path=True))
         print(f'Reading {len(files)} json files into DataFrame')
         self._init_spark()
-        df = self.spark.read.json(files, schema=schema, timestampFormat="yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+        df = self.spark.read.json(files, schema=schemas[kwargs['type']],
+                timestampFormat=TIMESTAMP_FORMAT)
         return df
 
     def _init_spark(self):
