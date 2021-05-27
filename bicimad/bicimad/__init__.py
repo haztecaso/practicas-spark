@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from bicimad.dataloader import DataLoader
-from bicimad.sampler import Sampler
+from bicimad.data import *
+from bicimad.sampler import * 
 
-__all__ = ['DataLoader', 'Sampler']
+__all__ = ['DataLoader', 'Movements', 'Stations',  'Sampler']
