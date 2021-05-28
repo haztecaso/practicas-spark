@@ -41,7 +41,6 @@ class Sampler():
             filtered_stations = [row['stations'][0]]
             return Row(_id=row['_id'], stations = filtered_stations)
         stations = self.data_loader.get_data(start="202103", end="202103", type="stations")
-        stations.no_schema = True
         stations.load_df()
         df = stations.df.rdd.map(fn_map).toDF()
         df.coalesce(1).write\

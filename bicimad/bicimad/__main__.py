@@ -1,7 +1,8 @@
 import argparse
+
+from pyspark.sql.session import SparkSession
 from bicimad.globals import HDFS_PATH, DATE_FORMAT
 from bicimad.data import DataLoader
-from bicimad.pipelines import pipelines_data as P
 
 def detect_hdfs():
     try:
@@ -40,16 +41,19 @@ def main():
         sampler = Sampler()
         sampler.run(args.id) 
     elif args.command == 'pipeline':
-        pipeline_data = P[args.name] 
+        spark = SparkSession.builder\
+                .appName(f'bicimad pipeline {args.name}')\
+                .getOrCreate()
+        from bicimad.pipelines import pipelines_data
+        pipeline_data = pipelines_data[args.name] 
         if hdfs:
-            data_loader = DataLoader(appName=f'bicimad pipeline {args.name}')
+            data_loader = DataLoader(spark=spark)
             data = data_loader.get_data(type=pipeline_data['type'], **ask_time_interval()) 
         else:
             sample_file = args.load_sample if args.load_sample\
                     else 'samples/'+pipeline_data['default_sample']
-            data_loader = DataLoader(appName=f'bicimad pipeline test {args.name}', test_file = sample_file)
+            data_loader = DataLoader(spark=spark, test_file = sample_file)
             data = data_loader.get_data(type=pipeline_data['type']) 
-        data.no_schema = True
         data.load_df()
         print(f'Starting pipeline {args.name}')
         pipeline = pipeline_data['pipeline']
@@ -58,7 +62,9 @@ def main():
         print('- Transforming data')
         results = model.transform(data.df)
         results.printSchema()
-        results.show()
+        results.sort('day_hour').show(n=100)
+        # results.toPandas().plot.scatter(x='PCA1', y='PCA2')\
+        #         .get_figure().savefig("stations_pca.pdf")
     elif args.command == 'list':
         if args.options == 'pipelines':
             print("Available pipelines")
