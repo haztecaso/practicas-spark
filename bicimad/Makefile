@@ -1,5 +1,8 @@
 all: copy run
 
+pdf:
+	pandoc readme.md --template eisvogel -o readme.pdf
+
 run:
 	ssh clus-01 "~/bicimad.py"
 
@@ -9,3 +12,4 @@ copy:
 
 watch:
 	nix-shell -p entr tree --run 'find . | entr make copy'
+

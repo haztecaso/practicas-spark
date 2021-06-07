@@ -156,7 +156,7 @@ class DataLoader():
                 print(f"Loading cache file '{self.cache}'")
                 self.files = pickle.load(cache)
         except FileNotFoundError:
-            print("Cache file '{self.cache}' not found")
+            print(f"Cache file '{self.cache}' not found")
 
 
 __all__ = ['DataLoader', 'Movements', 'Stations']

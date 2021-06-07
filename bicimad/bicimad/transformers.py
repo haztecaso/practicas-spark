@@ -3,16 +3,27 @@ from bicimad.data import Stations
 
 from pyspark.ml import Transformer
 from pyspark.sql import DataFrame, Row
-from pyspark.sql.functions import explode, col, concat, to_date, hour, lit
-from pyspark.ml.param.shared import Param, Params, HasInputCol, TypeConverters
+import pyspark.sql.functions as F
+from pyspark.ml.param.shared import Param, Params, TypeConverters
+
+class PrintAndAskContinue(Transformer):
+    def _transform(self, df: DataFrame):
+        df.printSchema()
+        df.show(10)
+        input('Continue?')
+        return df
 
 class FlattenStations(Transformer):
     def _transform(self, df: DataFrame):
         print("  - Flattening stations")
-        result = df.select(col('_id').alias('timestamp'),  explode('stations').alias('station'))
+        result = df.select(\
+                F.col('_id').alias('timestamp'),\
+                F.explode('stations').alias('station')\
+                )
         for key in Stations.element_schema:
-            result = result.withColumn(key.name, col(f'station.{key.name}'))
+            result = result.withColumn(key.name, F.col(f'station.{key.name}'))
         return result.drop('station')
+
 
 class SelectStationsData(Transformer):
     def _transform(self, df: DataFrame):
@@ -21,8 +32,8 @@ class SelectStationsData(Transformer):
                 'timestamp',
                 'dock_bikes',
                 'free_bases',
-                'total_bases',
                 )
+
 
 class SelectStation(Transformer):
     station_id = Param(Params._dummy(), 'station_id', 'stations id to select')
@@ -39,26 +50,35 @@ class SelectStation(Transformer):
     def _transform(self, df: DataFrame):
         id = self.get_id()
         print(f"  - Selecting station with id {id}")
-        return df.filter(col('id') == id)
+        return df.filter(F.col('id') == id)
+
 
 class DatetimeExtractStations(Transformer):
     def _transform(self, df: DataFrame):
-        print("  - Adding datetime columns")
-        return df.withColumn('day_hour', concat(
-                    to_date('timestamp').cast('string'),
-                    lit(" "),
-                    hour('timestamp').cast('string'),
-                    lit("h"),
-                    ))
+        print("  - Adding date and hour columns")
+        return df\
+                .withColumn('date', F.to_date('timestamp'))\
+                .withColumn('hour', F.hour('timestamp'))
 
-class ReduceStationHours(Transformer):
+
+class WeekDays(Transformer):
     def _transform(self, df: DataFrame):
-        print("  - Reducing hours")
-        return df.groupBy('day_hour').sum(
-                'dock_bikes',
-                'free_bases',
-                'total_bases',
-                )
+        print("  - Marking weekends")
+        return df\
+                .withColumn('weekend', F.dayofweek('timestamp').isin([7, 0]))\
+
+
+class GroupByHour(Transformer):
+    def _transform(self, df: DataFrame):
+        print("  - Grouping by hours")
+        return df.groupBy('weekend', 'hour').sum('free_bases').na.fill(0)
+
+class GroupByDate(Transformer):
+    def _transform(self, df: DataFrame):
+        print("  - Grouping by date (days) and pivot by hour.")
+        return df.groupBy('date', 'weekend')\
+                .pivot('hour').sum('dock_bikes').na.fill(0)
+
 
 class FlattenPCAVariables(Transformer):
     k = Param(Params._dummy(), 'k', 'PCA k parameter')
@@ -96,7 +116,23 @@ class FlattenPCAVariables(Transformer):
         return df.rdd.map(extract_components).toDF()
 
 
-class GroupByDays(Transformer):
+class SelectPCAVariables(Transformer):
+    k = Param(Params._dummy(), 'k', 'number of PCA variables')
+
+    @keyword_only
+    def __init__(self, k):
+        super().__init__()
+        kwargs = self._input_kwargs
+        self._set(**kwargs)
+
+    def get_k(self):
+        return self.getOrDefault('k')
+
     def _transform(self, df: DataFrame):
-        print("  - Grouping by days")
-        return df.groupBy('day_of_year').sum()
+        k = self.get_k()
+        print(f"  - Selecting PCA variables")
+        cols = [F.col('date'), F.col('weekend')]
+        cols += [F.col(f'PCA{i+1}') for i in range(k)]
+        return df.select(cols)
+
+
