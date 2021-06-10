@@ -6,6 +6,7 @@ let
     pylint
     pandas
     matplotlib
+    setuptools
   ];
 in
 pkgs.stdenv.mkDerivation {
